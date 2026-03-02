@@ -28,3 +28,9 @@ document.getElementById("historico").innerHTML = lista.join("<br>");
 }
 
 mostrarHistorico();
+if ('serviceWorker' in navigator) {
+navigator.serviceWorker.register('service-worker.js')
+.then(() => console.log("SW OK"))
+.catch(() => console.log("SW ERRO"));
+}
+
