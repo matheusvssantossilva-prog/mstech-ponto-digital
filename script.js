@@ -58,4 +58,21 @@ alert("Acesso negado");
 }
 
 }
+function apagarHistorico(){
+
+if(localStorage.getItem("admLogado") === "sim"){
+
+if(confirm("Deseja apagar todo histórico?")){
+
+localStorage.removeItem("pontos");
+mostrarHistorico();
+alert("Histórico apagado");
+
+}
+
+}else{
+alert("Somente ADM pode apagar");
+}
+
+}
 
