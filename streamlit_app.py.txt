@@ -1,25 +1,47 @@
 import streamlit as st
 from datetime import datetime
+import sqlite3
+import base64
 
 st.set_page_config(page_title="Ponto Digital", layout="centered")
 
-st.title("🔐 Ponto com Biometria")
+st.title("📸 Ponto com Selfie")
 
-if "logado" not in st.session_state:
-    st.session_state.logado = False
+# Banco de dados
+conn = sqlite3.connect('ponto.db')
+c = conn.cursor()
 
-# Botão de autenticação
-if not st.session_state.logado:
-    if st.button("👉 Entrar com Digital / FaceID"):
-        st.session_state.logado = True
-        st.success("Autenticado com sucesso!")
-        st.rerun()
+c.execute('''
+CREATE TABLE IF NOT EXISTS registros (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT,
+    data TEXT,
+    hora TEXT,
+    foto TEXT
+)
+''')
+conn.commit()
 
-# Depois da biometria
-if st.session_state.logado:
+nome = st.text_input("Digite seu nome")
 
-    nome = st.text_input("Seu nome")
+foto = st.camera_input("Tire uma selfie para bater o ponto")
 
-    if st.button("📍 Bater Ponto"):
-        hora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+if st.button("📍 Bater Ponto"):
+
+    if nome and foto:
+
+        agora = datetime.now()
+        data = agora.strftime("%d/%m/%Y")
+        hora = agora.strftime("%H:%M:%S")
+
+        imagem_bytes = foto.getvalue()
+        imagem_base64 = base64.b64encode(imagem_bytes).decode("utf-8")
+
+        c.execute("INSERT INTO registros (nome, data, hora, foto) VALUES (?, ?, ?, ?)",
+                  (nome, data, hora, imagem_base64))
+        conn.commit()
+
         st.success(f"Ponto registrado às {hora}")
+
+    else:
+        st.error("Preencha o nome e tire a selfie")
