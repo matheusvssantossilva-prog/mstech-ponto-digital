@@ -3,10 +3,23 @@ from datetime import datetime
 
 st.set_page_config(page_title="Ponto Digital", layout="centered")
 
-st.title("📱 Sistema de Ponto")
+st.title("🔐 Ponto com Biometria")
 
-nome = st.text_input("Digite seu nome")
+if "logado" not in st.session_state:
+    st.session_state.logado = False
 
-if st.button("Bater Ponto"):
-    hora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    st.success(f"Ponto registrado para {nome} às {hora}")
+# Botão de autenticação
+if not st.session_state.logado:
+    if st.button("👉 Entrar com Digital / FaceID"):
+        st.session_state.logado = True
+        st.success("Autenticado com sucesso!")
+        st.rerun()
+
+# Depois da biometria
+if st.session_state.logado:
+
+    nome = st.text_input("Seu nome")
+
+    if st.button("📍 Bater Ponto"):
+        hora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        st.success(f"Ponto registrado às {hora}")
