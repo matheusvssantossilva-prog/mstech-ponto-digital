@@ -3,7 +3,7 @@ const video = document.getElementById('camera');
 navigator.mediaDevices.getUserMedia({ video: true })
 .then(stream => video.srcObject = stream);
 
-function baterPonto(){
+function baterPonto(){notificar();
 
 let nome = document.getElementById("nome").value;
 let data = new Date();
