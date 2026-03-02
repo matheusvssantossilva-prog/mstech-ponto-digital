@@ -2,13 +2,17 @@ import streamlit as st
 from datetime import datetime
 import sqlite3
 import base64
+import pytz
 
 st.set_page_config(page_title="Ponto Digital", layout="centered")
 
 st.title("📸 Ponto com Selfie")
 
-# Banco de dados
-conn = sqlite3.connect('ponto.db')
+# Fuso horário Brasil
+fuso = pytz.timezone("America/Sao_Paulo")
+
+# Banco
+conn = sqlite3.connect('ponto.db', check_same_thread=False)
 c = conn.cursor()
 
 c.execute('''
@@ -22,26 +26,48 @@ CREATE TABLE IF NOT EXISTS registros (
 ''')
 conn.commit()
 
-nome = st.text_input("Digite seu nome")
+menu = st.sidebar.selectbox("Menu", ["Bater Ponto", "Histórico"])
 
-foto = st.camera_input("Tire uma selfie para bater o ponto")
+# ===== BATER PONTO =====
+if menu == "Bater Ponto":
 
-if st.button("📍 Bater Ponto"):
+    nome = st.text_input("Digite seu nome")
+    foto = st.camera_input("Tire uma selfie")
 
-    if nome and foto:
+    if st.button("📍 Bater Ponto"):
 
-        agora = datetime.now()
-        data = agora.strftime("%d/%m/%Y")
-        hora = agora.strftime("%H:%M:%S")
+        if nome and foto:
 
-        imagem_bytes = foto.getvalue()
-        imagem_base64 = base64.b64encode(imagem_bytes).decode("utf-8")
+            agora = datetime.now(fuso)
+            data = agora.strftime("%d/%m/%Y")
+            hora = agora.strftime("%H:%M:%S")
 
-        c.execute("INSERT INTO registros (nome, data, hora, foto) VALUES (?, ?, ?, ?)",
-                  (nome, data, hora, imagem_base64))
-        conn.commit()
+            imagem_bytes = foto.getvalue()
+            imagem_base64 = base64.b64encode(imagem_bytes).decode("utf-8")
 
-        st.success(f"Ponto registrado às {hora}")
+            c.execute("INSERT INTO registros (nome, data, hora, foto) VALUES (?, ?, ?, ?)",
+                      (nome, data, hora, imagem_base64))
+            conn.commit()
 
-    else:
-        st.error("Preencha o nome e tire a selfie")
+            st.success(f"Ponto registrado às {hora}")
+
+        else:
+            st.error("Preencha o nome e tire a selfie")
+
+# ===== HISTÓRICO =====
+if menu == "Histórico":
+
+    st.subheader("📋 Histórico de Pontos")
+
+    dados = c.execute("SELECT nome, data, hora, foto FROM registros ORDER BY id DESC").fetchall()
+
+    for nome, data, hora, foto in dados:
+
+        st.write(f"👤 {nome}")
+        st.write(f"📅 {data}")
+        st.write(f"🕒 {hora}")
+
+        img = base64.b64decode(foto)
+        st.image(img, width=200)
+
+        st.markdown("---")
