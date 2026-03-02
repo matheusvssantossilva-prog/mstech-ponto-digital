@@ -202,3 +202,24 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 """, unsafe_allow_html=True)
+st.markdown("""
+<link rel="manifest" href="/manifest.json">
+<script>
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js');
+}
+
+Notification.requestPermission().then(function(permission) {
+  if (permission === "granted") {
+    console.log("Notificação ativada");
+  }
+});
+
+function notificar() {
+  if (Notification.permission === "granted") {
+    new Notification("Ponto registrado com sucesso!");
+  }
+}
+</script>
+""", unsafe_allow_html=True)
