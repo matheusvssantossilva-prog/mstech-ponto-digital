@@ -31,4 +31,16 @@
 <script src="script.js"></script>
 
 </body>
+ Notification.requestPermission().then(function(permission) {
+if (permission === "granted") {
+console.log("Notificação ativada");
+}
+});
+
+function notificar() {
+if (Notification.permission === "granted") {
+new Notification("Ponto registrado com sucesso!");
+}
+}
+
 </html>
