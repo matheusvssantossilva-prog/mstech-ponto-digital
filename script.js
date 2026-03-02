@@ -44,4 +44,18 @@ if (Notification.permission === "granted") {
 new Notification("Ponto registrado com sucesso!");
 }
 }
+function loginADM(){
+
+let user = prompt("Usuário:");
+let senha = prompt("Senha:");
+
+if(user === "adm" && senha === "1324"){
+localStorage.setItem("admLogado", "sim");
+alert("ADM logado");
+mostrarBotaoApagar();
+}else{
+alert("Acesso negado");
+}
+
+}
 
