@@ -6,14 +6,20 @@ import pytz
 
 st.set_page_config(page_title="Ponto Digital", layout="centered")
 
-st.title("📸 Ponto com Selfie")
-
-# Fuso horário Brasil
 fuso = pytz.timezone("America/Sao_Paulo")
 
-# Banco
 conn = sqlite3.connect('ponto.db', check_same_thread=False)
 c = conn.cursor()
+
+# ===== TABELAS =====
+c.execute('''
+CREATE TABLE IF NOT EXISTS usuarios (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome TEXT UNIQUE,
+    senha TEXT,
+    tipo TEXT
+)
+''')
 
 c.execute('''
 CREATE TABLE IF NOT EXISTS registros (
@@ -26,48 +32,165 @@ CREATE TABLE IF NOT EXISTS registros (
 ''')
 conn.commit()
 
-menu = st.sidebar.selectbox("Menu", ["Bater Ponto", "Histórico"])
+# ===== GARANTIR ADMIN PADRÃO =====
+c.execute("SELECT * FROM usuarios WHERE nome = ?", ("adm",))
+if not c.fetchone():
+    c.execute(
+        "INSERT INTO usuarios (nome, senha, tipo) VALUES (?, ?, ?)",
+        ("adm", "1324", "admin")
+    )
+    conn.commit()
 
-# ===== BATER PONTO =====
-if menu == "Bater Ponto":
+# ===== LOGIN =====
+if "logado" not in st.session_state:
+    st.session_state.logado = False
 
-    nome = st.text_input("Digite seu nome")
-    foto = st.camera_input("Tire uma selfie")
+if not st.session_state.logado:
 
-    if st.button("📍 Bater Ponto"):
+    st.title("🔐 Login")
 
-        if nome and foto:
+    nome = st.text_input("Usuário")
+    senha = st.text_input("Senha", type="password")
 
-            agora = datetime.now(fuso)
-            data = agora.strftime("%d/%m/%Y")
-            hora = agora.strftime("%H:%M:%S")
+    if st.button("Entrar"):
 
-            imagem_bytes = foto.getvalue()
-            imagem_base64 = base64.b64encode(imagem_bytes).decode("utf-8")
+        user = c.execute(
+            "SELECT * FROM usuarios WHERE nome=? AND senha=?",
+            (nome, senha)
+        ).fetchone()
 
-            c.execute("INSERT INTO registros (nome, data, hora, foto) VALUES (?, ?, ?, ?)",
-                      (nome, data, hora, imagem_base64))
-            conn.commit()
-
-            st.success(f"Ponto registrado às {hora}")
-
+        if user:
+            st.session_state.logado = True
+            st.session_state.usuario = user[1]
+            st.session_state.tipo = user[3]
+            st.rerun()
         else:
-            st.error("Preencha o nome e tire a selfie")
+            st.error("Usuário ou senha inválidos")
 
-# ===== HISTÓRICO =====
-if menu == "Histórico":
+# ===== SISTEMA LOGADO =====
+if st.session_state.logado:
 
-    st.subheader("📋 Histórico de Pontos")
+    st.sidebar.write(f"👤 {st.session_state.usuario}")
 
-    dados = c.execute("SELECT nome, data, hora, foto FROM registros ORDER BY id DESC").fetchall()
+    # ===== ADMIN =====
+    if st.session_state.tipo == "admin":
 
-    for nome, data, hora, foto in dados:
+        menu = st.sidebar.selectbox(
+            "Menu",
+            ["Bater Ponto", "Criar Funcionário", "Ver Registros"]
+        )
 
-        st.write(f"👤 {nome}")
-        st.write(f"📅 {data}")
-        st.write(f"🕒 {hora}")
+        # BATER PONTO
+        if menu == "Bater Ponto":
 
-        img = base64.b64decode(foto)
-        st.image(img, width=200)
+            st.title("📸 Bater Ponto")
+            foto = st.camera_input("Tire uma selfie")
 
-        st.markdown("---")
+            if st.button("Registrar"):
+
+                if foto:
+                    agora = datetime.now(fuso)
+                    data = agora.strftime("%d/%m/%Y")
+                    hora = agora.strftime("%H:%M:%S")
+
+                    imagem_base64 = base64.b64encode(
+                        foto.getvalue()
+                    ).decode("utf-8")
+
+                    c.execute(
+                        "INSERT INTO registros (nome, data, hora, foto) VALUES (?, ?, ?, ?)",
+                        (st.session_state.usuario, data, hora, imagem_base64)
+                    )
+                    conn.commit()
+
+                    st.success(f"Ponto registrado às {hora}")
+                else:
+                    st.error("Tire a selfie")
+
+        # CRIAR FUNCIONÁRIO
+        if menu == "Criar Funcionário":
+
+            st.title("➕ Novo Funcionário")
+
+            novo_nome = st.text_input("Nome do funcionário")
+            nova_senha = st.text_input("Senha", type="password")
+
+            if st.button("Criar"):
+
+                try:
+                    c.execute(
+                        "INSERT INTO usuarios (nome, senha, tipo) VALUES (?, ?, ?)",
+                        (novo_nome, nova_senha, "funcionario")
+                    )
+                    conn.commit()
+                    st.success("Funcionário criado com sucesso")
+                except:
+                    st.error("Usuário já existe")
+
+        # VER TODOS REGISTROS
+        if menu == "Ver Registros":
+
+            st.title("📋 Todos os Pontos")
+
+            dados = c.execute(
+                "SELECT nome, data, hora, foto FROM registros ORDER BY id DESC"
+            ).fetchall()
+
+            for nome, data, hora, foto in dados:
+
+                st.write(f"👤 {nome}")
+                st.write(f"📅 {data}")
+                st.write(f"🕒 {hora}")
+
+                st.image(base64.b64decode(foto), width=200)
+                st.markdown("---")
+
+    # ===== FUNCIONÁRIO =====
+    else:
+
+        menu = st.sidebar.selectbox(
+            "Menu",
+            ["Bater Ponto", "Meu Histórico"]
+        )
+
+        if menu == "Bater Ponto":
+
+            st.title("📸 Bater Ponto")
+            foto = st.camera_input("Tire uma selfie")
+
+            if st.button("Registrar"):
+
+                if foto:
+                    agora = datetime.now(fuso)
+                    data = agora.strftime("%d/%m/%Y")
+                    hora = agora.strftime("%H:%M:%S")
+
+                    imagem_base64 = base64.b64encode(
+                        foto.getvalue()
+                    ).decode("utf-8")
+
+                    c.execute(
+                        "INSERT INTO registros (nome, data, hora, foto) VALUES (?, ?, ?, ?)",
+                        (st.session_state.usuario, data, hora, imagem_base64)
+                    )
+                    conn.commit()
+
+                    st.success(f"Ponto registrado às {hora}")
+                else:
+                    st.error("Tire a selfie")
+
+        if menu == "Meu Histórico":
+
+            st.title("📋 Meu Histórico")
+
+            dados = c.execute(
+                "SELECT data, hora, foto FROM registros WHERE nome=? ORDER BY id DESC",
+                (st.session_state.usuario,)
+            ).fetchall()
+
+            for data, hora, foto in dados:
+
+                st.write(f"📅 {data}")
+                st.write(f"🕒 {hora}")
+                st.image(base64.b64decode(foto), width=200)
+                st.markdown("---")
