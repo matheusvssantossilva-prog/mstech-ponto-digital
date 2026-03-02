@@ -33,4 +33,15 @@ navigator.serviceWorker.register('service-worker.js')
 .then(() => console.log("SW OK"))
 .catch(() => console.log("SW ERRO"));
 }
+Notification.requestPermission().then(function(permission) {
+if (permission === "granted") {
+console.log("Notificação ativada");
+}
+});
+
+function notificar() {
+if (Notification.permission === "granted") {
+new Notification("Ponto registrado com sucesso!");
+}
+}
 
