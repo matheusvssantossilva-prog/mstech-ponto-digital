@@ -76,3 +76,15 @@ alert("Somente ADM pode apagar");
 
 }
 
+function mostrarBotaoApagar(){
+
+let area = document.getElementById("areaApagar");
+
+if(localStorage.getItem("admLogado") === "sim"){
+
+area.innerHTML = '<button onclick="apagarHistorico()">🗑 Apagar Histórico</button>';
+
+}
+
+}
+mostrarBotaoApagar();
